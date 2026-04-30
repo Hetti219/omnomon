@@ -74,8 +74,4 @@ impl Collector for SystemInfoCollector {
         info.load_avg = (la.one, la.five, la.fifteen);
         Some(info)
     }
-
-    fn name(&self) -> &'static str {
-        "system_info"
-    }
 }
