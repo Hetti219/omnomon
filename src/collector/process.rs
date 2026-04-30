@@ -5,11 +5,9 @@ use super::{Collector, GpuProcessInfo};
 #[derive(Clone, Default)]
 pub struct ProcessSnapshot {
     pub pid: u32,
-    pub parent_pid: Option<u32>,
     pub name: String,
     pub cpu_usage: f32,
     pub memory_usage: f32,
-    pub memory_bytes: u64,
     pub user: String,
     pub state: ProcessState,
     pub gpu_usage: Option<f32>,
@@ -114,11 +112,9 @@ impl Collector for ProcessCollector {
             };
             out.push(ProcessSnapshot {
                 pid: pid.as_u32(),
-                parent_pid: proc_.parent().map(|p| p.as_u32()),
                 name: proc_.name().to_string_lossy().into_owned(),
                 cpu_usage: proc_.cpu_usage() / self.num_cores,
                 memory_usage: mem_pct,
-                memory_bytes: mem_bytes,
                 user,
                 state,
                 gpu_usage: None,
@@ -127,10 +123,6 @@ impl Collector for ProcessCollector {
             });
         }
         Some(out)
-    }
-
-    fn name(&self) -> &'static str {
-        "process"
     }
 }
 
