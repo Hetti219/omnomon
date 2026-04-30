@@ -1,7 +1,8 @@
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};
+use ratatui::symbols;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph};
 use ratatui::Frame;
 
 use super::block;
@@ -30,6 +31,97 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         }
     };
 
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(8),
+            Constraint::Length(8),
+            Constraint::Min(3),
+        ])
+        .split(inner);
+
+    render_charge_chart(f, chunks[0], state);
+    render_rate_chart(f, chunks[1], state);
+    render_stats(f, chunks[2], state, bat);
+}
+
+fn render_charge_chart(f: &mut Frame, area: Rect, state: &AppState) {
+    let data: Vec<(f64, f64)> = state
+        .battery_history
+        .iter_ordered()
+        .enumerate()
+        .map(|(i, v)| (i as f64, *v as f64))
+        .collect();
+    let max_x = (state.battery_history.capacity() as f64).max(1.0);
+    let datasets = vec![Dataset::default()
+        .name("Charge%")
+        .marker(symbols::Marker::Braille)
+        .graph_type(GraphType::Line)
+        .style(Style::default().fg(state.theme.primary))
+        .data(&data)];
+    let chart = Chart::new(datasets)
+        .x_axis(Axis::default().bounds([0.0, max_x]))
+        .y_axis(
+            Axis::default()
+                .bounds([0.0, 100.0])
+                .style(Style::default().fg(state.theme.dim)),
+        )
+        .block(
+            Block::default()
+                .borders(Borders::NONE)
+                .title(Span::styled(
+                    format!(
+                        "Charge history ({}s)",
+                        state.graph_time_window.as_secs()
+                    ),
+                    Style::default().fg(state.theme.dim),
+                )),
+        );
+    f.render_widget(chart, area);
+}
+
+fn render_rate_chart(f: &mut Frame, area: Rect, state: &AppState) {
+    let data: Vec<(f64, f64)> = state
+        .battery_rate_history
+        .iter_ordered()
+        .enumerate()
+        .map(|(i, v)| (i as f64, *v))
+        .collect();
+    let max_x = (state.battery_rate_history.capacity() as f64).max(1.0);
+    let max_y = data.iter().map(|(_, v)| *v).fold(1.0_f64, f64::max);
+    let datasets = vec![Dataset::default()
+        .name("Watts")
+        .marker(symbols::Marker::Braille)
+        .graph_type(GraphType::Line)
+        .style(Style::default().fg(state.theme.secondary))
+        .data(&data)];
+    let chart = Chart::new(datasets)
+        .x_axis(Axis::default().bounds([0.0, max_x]))
+        .y_axis(
+            Axis::default()
+                .bounds([0.0, max_y * 1.1])
+                .style(Style::default().fg(state.theme.dim)),
+        )
+        .block(
+            Block::default()
+                .borders(Borders::NONE)
+                .title(Span::styled(
+                    format!(
+                        "Power draw history ({}s)",
+                        state.graph_time_window.as_secs()
+                    ),
+                    Style::default().fg(state.theme.dim),
+                )),
+        );
+    f.render_widget(chart, area);
+}
+
+fn render_stats(
+    f: &mut Frame,
+    area: Rect,
+    state: &AppState,
+    bat: &crate::collector::BatterySnapshot,
+) {
     let icon = match bat.state {
         BatteryState::Charging => "⚡",
         BatteryState::Discharging => "▼",
@@ -48,6 +140,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             .time_to_empty
             .map(|d| format!("ETA empty: {}", format_duration(d)))
             .unwrap_or_else(|| "ETA empty: --".into()),
+        BatteryState::Full => "Fully charged".into(),
         _ => "ETA: --".into(),
     };
 
@@ -90,11 +183,18 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             Span::styled("Temp     ", Style::default().fg(state.theme.dim)),
             Span::raw(temp),
             Span::styled("    AC       ", Style::default().fg(state.theme.dim)),
-            Span::raw(if bat.ac_connected {
-                "connected".to_string()
-            } else {
-                "unplugged".to_string()
-            }),
+            Span::styled(
+                if bat.ac_connected {
+                    "connected".to_string()
+                } else {
+                    "unplugged".to_string()
+                },
+                Style::default().fg(if bat.ac_connected {
+                    state.theme.primary
+                } else {
+                    state.theme.secondary
+                }),
+            ),
         ]),
         Line::from(""),
         Line::from(Span::styled(
@@ -104,5 +204,5 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
                 .add_modifier(Modifier::BOLD),
         )),
     ];
-    f.render_widget(Paragraph::new(lines), inner);
+    f.render_widget(Paragraph::new(lines), area);
 }
