@@ -127,7 +127,6 @@ fn render_stats(
         BatteryState::Discharging => "▼",
         BatteryState::Full => "✓",
         BatteryState::Empty => "✗",
-        BatteryState::NotCharging => "·",
         BatteryState::Unknown => "?",
     };
 

@@ -30,7 +30,6 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     lines.push(kv("S", "Toggle sort direction"));
     lines.push(kv("K", "Kill selected (SIGTERM)"));
     lines.push(kv("D", "Kill selected (SIGKILL)"));
-    lines.push(kv("t", "Toggle tree view"));
     lines.push(Line::from(""));
     lines.push(section("Network", state));
     lines.push(kv("n", "Cycle interface"));
