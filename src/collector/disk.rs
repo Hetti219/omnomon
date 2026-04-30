@@ -7,7 +7,6 @@ use super::Collector;
 
 #[derive(Clone, Default)]
 pub struct DiskSnapshot {
-    pub name: String,
     pub mount_point: String,
     pub fs_type: String,
     pub total: u64,
@@ -72,7 +71,6 @@ impl Collector for DiskCollector {
             new_prev.insert(key, (usage.total_read_bytes, usage.total_written_bytes));
 
             out.push(DiskSnapshot {
-                name,
                 mount_point: mount,
                 fs_type,
                 total,
@@ -83,9 +81,5 @@ impl Collector for DiskCollector {
         }
         self.prev = new_prev;
         Some(out)
-    }
-
-    fn name(&self) -> &'static str {
-        "disk"
     }
 }

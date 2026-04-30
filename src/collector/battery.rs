@@ -27,7 +27,6 @@ pub enum BatteryState {
     Charging,
     Discharging,
     Full,
-    NotCharging,
     Empty,
     Unknown,
 }
@@ -44,7 +43,6 @@ impl BatteryState {
             BatteryState::Charging => "Charging",
             BatteryState::Discharging => "Discharging",
             BatteryState::Full => "Full",
-            BatteryState::NotCharging => "Not Charging",
             BatteryState::Empty => "Empty",
             BatteryState::Unknown => "Unknown",
         }
@@ -109,10 +107,6 @@ impl Collector for BatteryCollector {
             temperature,
             ac_connected: ac_connected || ac_present_sysfs(),
         })
-    }
-
-    fn name(&self) -> &'static str {
-        "battery"
     }
 }
 

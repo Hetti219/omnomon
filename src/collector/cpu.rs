@@ -90,10 +90,6 @@ impl Collector for CpuCollector {
             package_temp,
         })
     }
-
-    fn name(&self) -> &'static str {
-        "cpu"
-    }
 }
 
 fn parse_core_index(label: &str) -> Option<usize> {

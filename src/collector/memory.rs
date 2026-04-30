@@ -51,10 +51,6 @@ impl Collector for MemoryCollector {
             swap_used: self.system.used_swap(),
         })
     }
-
-    fn name(&self) -> &'static str {
-        "memory"
-    }
 }
 
 fn read_meminfo_extra() -> (u64, u64) {

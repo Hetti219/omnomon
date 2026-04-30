@@ -20,7 +20,6 @@ pub struct ThermalZone {
 pub struct FanInfo {
     pub name: String,
     pub rpm: u32,
-    pub min_rpm: Option<u32>,
     pub max_rpm: Option<u32>,
 }
 
@@ -46,10 +45,6 @@ impl Collector for ThermalCollector {
             zones: read_thermal_zones(),
             fans: read_fans(),
         })
-    }
-
-    fn name(&self) -> &'static str {
-        "thermal"
     }
 }
 
@@ -110,7 +105,6 @@ pub fn read_fans() -> Vec<FanInfo> {
                 fans.push(FanInfo {
                     name: label,
                     rpm,
-                    min_rpm: read_sysfs_value(&path.join(format!("fan{}_min", i))),
                     max_rpm: read_sysfs_value(&path.join(format!("fan{}_max", i))),
                 });
             }

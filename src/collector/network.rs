@@ -83,8 +83,4 @@ impl Collector for NetworkCollector {
         out.sort_by(|a, b| a.interface.cmp(&b.interface));
         Some(out)
     }
-
-    fn name(&self) -> &'static str {
-        "network"
-    }
 }

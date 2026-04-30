@@ -171,8 +171,4 @@ impl Collector for GpuCollector {
     fn collect(&mut self) -> Option<GpuSnapshot> {
         None
     }
-
-    fn name(&self) -> &'static str {
-        "gpu"
-    }
 }
