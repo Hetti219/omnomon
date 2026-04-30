@@ -1,5 +1,6 @@
-*.md
+CLAUDE.md
 
 # Added by cargo
 
 /target
+/docs
