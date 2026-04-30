@@ -23,6 +23,14 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         }
     };
 
+    if area.width < 100 {
+        render_stacked(f, area, state, snap);
+    } else {
+        render_grid(f, area, state, snap);
+    }
+}
+
+fn render_grid(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnapshot) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -53,6 +61,40 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     network_panel(f, r3[1], state, snap);
     thermal_panel(f, r4[0], state, snap);
     process_panel(f, r4[1], state, snap);
+}
+
+fn render_stacked(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnapshot) {
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(28),
+            Constraint::Percentage(20),
+            Constraint::Percentage(14),
+            Constraint::Percentage(38),
+        ])
+        .split(area);
+    cpu_panel(f, rows[0], state, snap);
+    if snap.gpu.is_some() {
+        let split = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(rows[1]);
+        memory_panel(f, split[0], state, snap);
+        gpu_panel(f, split[1], state, snap);
+    } else {
+        memory_panel(f, rows[1], state, snap);
+    }
+    let row3 = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(rows[2]);
+    disk_panel(f, row3[0], state, snap);
+    if snap.battery.is_some() {
+        battery_panel(f, row3[1], state, snap);
+    } else {
+        network_panel(f, row3[1], state, snap);
+    }
+    process_panel(f, rows[3], state, snap);
 }
 
 fn cpu_panel(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnapshot) {
@@ -290,29 +332,64 @@ fn battery_panel(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnaps
             return;
         }
     };
+
+    let chart_h: u16 = if inner.height >= 6 { 2 } else { 0 };
+    let chunks = if chart_h > 0 {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(chart_h), Constraint::Min(0)])
+            .split(inner)
+    } else {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(0), Constraint::Min(0)])
+            .split(inner)
+    };
+
+    if chart_h > 0 {
+        let data: Vec<(f64, f64)> = state
+            .battery_history
+            .iter_ordered()
+            .enumerate()
+            .map(|(i, v)| (i as f64, *v as f64))
+            .collect();
+        let max_x = (state.battery_history.capacity() as f64).max(1.0);
+        mini_line(
+            f,
+            chunks[0],
+            &data,
+            max_x,
+            [0.0, 100.0],
+            battery_color(bat.charge_percent),
+        );
+    }
+
     let icon = match bat.state {
         BatteryState::Charging => "⚡",
         BatteryState::Discharging => "▼",
         BatteryState::Full => "✓",
-        _ => "·",
+        BatteryState::Empty => "✗",
+        BatteryState::NotCharging => "·",
+        BatteryState::Unknown => "?",
     };
     let eta = match bat.state {
         BatteryState::Charging => bat
             .time_to_full
             .map(format_duration)
-            .map(|d| format!("ETA full {}", d))
+            .map(|d| format!("ETA {}", d))
             .unwrap_or_else(|| "ETA --".into()),
         BatteryState::Discharging => bat
             .time_to_empty
             .map(format_duration)
-            .map(|d| format!("ETA empty {}", d))
+            .map(|d| format!("ETA {}", d))
             .unwrap_or_else(|| "ETA --".into()),
+        BatteryState::Full => "Full".into(),
         _ => "ETA --".into(),
     };
     let lines = vec![
         Line::from(vec![
             Span::styled(
-                bar(bat.charge_percent, 100.0, 22),
+                bar(bat.charge_percent, 100.0, 18),
                 Style::default().fg(battery_color(bat.charge_percent)),
             ),
             Span::raw(format!(
@@ -323,24 +400,19 @@ fn battery_panel(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnaps
             )),
         ]),
         Line::from(format!(
-            "Health {:.0}%   Rate {:.1} W",
-            bat.health_percent, bat.energy_rate
+            "Health {:.0}%  Rate {:.1}W  {}",
+            bat.health_percent, bat.energy_rate, eta
         )),
         Line::from(format!(
-            "Cycles {}   Volt {:.2} V",
+            "Cycles {}  {:.2}V  {}",
             bat.cycle_count
                 .map(|c| c.to_string())
                 .unwrap_or_else(|| "--".into()),
-            bat.voltage
-        )),
-        Line::from(Span::styled(
-            eta,
-            Style::default()
-                .fg(state.theme.primary)
-                .add_modifier(Modifier::BOLD),
+            bat.voltage,
+            if bat.ac_connected { "AC" } else { "BAT" }
         )),
     ];
-    f.render_widget(Paragraph::new(lines), inner);
+    f.render_widget(Paragraph::new(lines), chunks[1]);
 }
 
 fn disk_panel(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnapshot) {
