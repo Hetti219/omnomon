@@ -140,6 +140,8 @@ pub struct AppState {
     pub net_tx_history: RingBuffer<f64>,
     pub disk_read_history: RingBuffer<f64>,
     pub disk_write_history: RingBuffer<f64>,
+    pub battery_history: RingBuffer<f32>,
+    pub battery_rate_history: RingBuffer<f64>,
 
     pub process_sort: ProcessSortColumn,
     pub process_sort_ascending: bool,
@@ -178,6 +180,8 @@ impl AppState {
             net_tx_history: RingBuffer::new(cap),
             disk_read_history: RingBuffer::new(cap),
             disk_write_history: RingBuffer::new(cap),
+            battery_history: RingBuffer::new(cap),
+            battery_rate_history: RingBuffer::new(cap),
             process_sort: ProcessSortColumn::from_name(&cfg.default_sort),
             process_sort_ascending: false,
             process_filter: String::new(),
@@ -223,6 +227,8 @@ impl AppState {
         self.net_tx_history.resize(cap);
         self.disk_read_history.resize(cap);
         self.disk_write_history.resize(cap);
+        self.battery_history.resize(cap);
+        self.battery_rate_history.resize(cap);
         for h in &mut self.per_core_history {
             h.resize(cap);
         }

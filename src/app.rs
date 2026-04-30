@@ -154,6 +154,11 @@ impl App {
         self.state.disk_read_history.push(read_total);
         self.state.disk_write_history.push(write_total);
 
+        if let Some(bat) = &snap.battery {
+            self.state.battery_history.push(bat.charge_percent);
+            self.state.battery_rate_history.push(bat.energy_rate);
+        }
+
         self.state.current_snapshot = Some(snap);
     }
 
