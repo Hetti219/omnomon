@@ -69,15 +69,6 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
                 .fg(state.theme.primary)
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(
-            if state.process_tree_view {
-                "    Tree on"
-            } else {
-                ""
-            }
-            .to_string(),
-            Style::default().fg(state.theme.dim),
-        ),
     ]);
     f.render_widget(Paragraph::new(header_line), chunks[0]);
 
@@ -89,10 +80,13 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         .collect();
     sort_processes(&mut procs, state.process_sort, state.process_sort_ascending);
 
-    let header = Row::new(vec![
-        "PID", "USER", "NAME", "CPU%", "MEM%", "VRAM", "STATE", "TIME",
-    ])
-    .style(
+    let mut header_cols = vec!["PID", "USER", "NAME", "CPU%", "MEM%"];
+    if state.show_gpu_column {
+        header_cols.push("VRAM");
+    }
+    header_cols.push("STATE");
+    header_cols.push("TIME");
+    let header = Row::new(header_cols).style(
         Style::default()
             .fg(state.theme.header)
             .add_modifier(Modifier::BOLD),
@@ -102,9 +96,8 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         .map(|p| {
             let cpu_color = usage_color(p.cpu_usage);
             let mem_color = usage_color(p.memory_usage);
-            let vram = p.gpu_memory.map(format_bytes).unwrap_or_else(|| "---".into());
             let time = format_duration(Duration::from_secs(p.cumulative_cpu_time));
-            Row::new(vec![
+            let mut cells = vec![
                 Span::raw(p.pid.to_string()),
                 Span::raw(truncate(&p.user, 10)),
                 Span::raw(truncate(&p.name, 26)),
@@ -113,26 +106,31 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
                     format!("{:.1}", p.memory_usage),
                     Style::default().fg(mem_color),
                 ),
-                Span::raw(vram),
-                Span::raw(p.state.label().to_string()),
-                Span::raw(time),
-            ])
+            ];
+            if state.show_gpu_column {
+                cells.push(Span::raw(
+                    p.gpu_memory.map(format_bytes).unwrap_or_else(|| "---".into()),
+                ));
+            }
+            cells.push(Span::raw(p.state.label().to_string()));
+            cells.push(Span::raw(time));
+            Row::new(cells)
         })
         .collect();
 
-    let table = Table::new(
-        rows,
-        [
-            Constraint::Length(7),
-            Constraint::Length(11),
-            Constraint::Length(28),
-            Constraint::Length(7),
-            Constraint::Length(7),
-            Constraint::Length(10),
-            Constraint::Length(7),
-            Constraint::Min(8),
-        ],
-    )
+    let mut widths = vec![
+        Constraint::Length(7),
+        Constraint::Length(11),
+        Constraint::Length(28),
+        Constraint::Length(7),
+        Constraint::Length(7),
+    ];
+    if state.show_gpu_column {
+        widths.push(Constraint::Length(10));
+    }
+    widths.push(Constraint::Length(7));
+    widths.push(Constraint::Min(8));
+    let table = Table::new(rows, widths)
     .header(header)
     .row_highlight_style(
         Style::default()

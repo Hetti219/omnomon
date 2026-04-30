@@ -34,23 +34,6 @@ impl<T: Clone + Default> RingBuffer<T> {
         (0..self.len).map(move |i| &self.data[(start + i) % self.capacity])
     }
 
-    pub fn latest(&self) -> Option<&T> {
-        if self.len == 0 {
-            None
-        } else {
-            let idx = (self.head + self.capacity - 1) % self.capacity;
-            Some(&self.data[idx])
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
     pub fn capacity(&self) -> usize {
         self.capacity
     }
@@ -76,8 +59,7 @@ mod tests {
     #[test]
     fn empty() {
         let rb: RingBuffer<f32> = RingBuffer::new(5);
-        assert_eq!(rb.len(), 0);
-        assert!(rb.latest().is_none());
+        assert!(rb.iter_ordered().next().is_none());
     }
 
     #[test]
@@ -88,7 +70,6 @@ mod tests {
         rb.push(3.0);
         let v: Vec<f32> = rb.iter_ordered().copied().collect();
         assert_eq!(v, vec![1.0, 2.0, 3.0]);
-        assert_eq!(rb.latest(), Some(&3.0));
     }
 
     #[test]
@@ -99,8 +80,6 @@ mod tests {
         }
         let v: Vec<f32> = rb.iter_ordered().copied().collect();
         assert_eq!(v, vec![3.0, 4.0, 5.0]);
-        assert_eq!(rb.latest(), Some(&5.0));
-        assert_eq!(rb.len(), 3);
     }
 
     #[test]
