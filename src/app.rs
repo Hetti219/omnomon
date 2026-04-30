@@ -1,5 +1,4 @@
 use std::io::Stdout;
-use std::time::Instant;
 
 use crossterm::event::{Event as CtEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::backend::CrosstermBackend;
@@ -62,7 +61,6 @@ impl DataManager {
         let system_info = self.system_info.collect().unwrap_or_default();
 
         SystemSnapshot {
-            timestamp: Instant::now(),
             cpu,
             memory,
             gpu,
@@ -114,7 +112,17 @@ impl App {
 
     fn tick(&mut self) {
         let snap = self.data.collect_all();
-        // Push history
+
+        if !self.state.interface_resolved && !snap.network.is_empty() {
+            let want = self.state.default_interface.as_str();
+            if !want.is_empty() && !want.eq_ignore_ascii_case("auto") {
+                if let Some(idx) = snap.network.iter().position(|n| n.interface == want) {
+                    self.state.selected_network_interface = idx;
+                }
+            }
+            self.state.interface_resolved = true;
+        }
+
         self.state.cpu_history.push(snap.cpu.average_usage);
         if self.state.per_core_history.len() != snap.cpu.cores.len() {
             let cap = self.state.cpu_history.capacity();
@@ -281,9 +289,6 @@ impl App {
                 if let Some(pid) = self.selected_pid() {
                     self.data.process.kill(pid, sysinfo::Signal::Kill);
                 }
-            }
-            KeyCode::Char('t') => {
-                self.state.process_tree_view = !self.state.process_tree_view;
             }
             _ => {}
         }

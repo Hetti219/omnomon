@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crate::collector::{
     BatterySnapshot, CpuSnapshot, DiskSnapshot, GpuSnapshot, MemorySnapshot, NetworkSnapshot,
@@ -10,7 +10,6 @@ use crate::ui::theme::Theme;
 
 #[derive(Clone)]
 pub struct SystemSnapshot {
-    pub timestamp: Instant,
     pub cpu: CpuSnapshot,
     pub memory: MemorySnapshot,
     pub gpu: Option<GpuSnapshot>,
@@ -148,11 +147,11 @@ pub struct AppState {
     pub process_filter: String,
     pub process_filter_editing: bool,
     pub process_selected_index: usize,
-    pub process_scroll_offset: usize,
-    pub process_tree_view: bool,
 
     pub show_help: bool,
     pub selected_network_interface: usize,
+    pub default_interface: String,
+    pub interface_resolved: bool,
     pub graph_time_window: Duration,
     pub theme: Theme,
 
@@ -187,10 +186,10 @@ impl AppState {
             process_filter: String::new(),
             process_filter_editing: false,
             process_selected_index: 0,
-            process_scroll_offset: 0,
-            process_tree_view: false,
             show_help: false,
             selected_network_interface: 0,
+            default_interface: cfg.default_interface.clone(),
+            interface_resolved: false,
             graph_time_window: cfg.graph_time_window,
             theme: Theme::by_name(&cfg.theme_name),
             refresh_rate: cfg.refresh_rate,
