@@ -56,11 +56,24 @@ fn render_grid(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnapsho
     cpu_panel(f, r1[0], state, snap);
     gpu_panel(f, r1[1], state, snap);
     memory_panel(f, r2[0], state, snap);
-    battery_panel(f, r2[1], state, snap);
-    disk_panel(f, r3[0], state, snap);
-    network_panel(f, r3[1], state, snap);
-    thermal_panel(f, r4[0], state, snap);
-    process_panel(f, r4[1], state, snap);
+    if state.show_battery {
+        battery_panel(f, r2[1], state, snap);
+    } else {
+        network_panel(f, r2[1], state, snap);
+    }
+    if state.show_disk {
+        disk_panel(f, r3[0], state, snap);
+        network_panel(f, r3[1], state, snap);
+    } else {
+        network_panel(f, r3[0], state, snap);
+        process_panel(f, r3[1], state, snap);
+    }
+    if state.show_thermal {
+        thermal_panel(f, r4[0], state, snap);
+        process_panel(f, r4[1], state, snap);
+    } else {
+        process_panel(f, rows[3], state, snap);
+    }
 }
 
 fn render_stacked(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnapshot) {
@@ -369,7 +382,6 @@ fn battery_panel(f: &mut Frame, area: Rect, state: &AppState, snap: &SystemSnaps
         BatteryState::Discharging => "▼",
         BatteryState::Full => "✓",
         BatteryState::Empty => "✗",
-        BatteryState::NotCharging => "·",
         BatteryState::Unknown => "?",
     };
     let eta = match bat.state {
